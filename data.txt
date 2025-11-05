@@ -1,0 +1,694 @@
+https://dl.espressif.com/dl/package_esp32_index.json
+
+Exp 1
+
+	#include <WiFi.h> 
+#include "ThingSpeak.h" 
+#include "DHT.h" 
+#define DHTPIN 5 	
+#define DHTTYPE DHT11   
+int wifi_LED = 2; 
+ 
+const char* ssid 	= "POCO M2 Pro"; 
+const char* password = "yooooooooo";
+const char * write_api = "5TLOX6OG9W1FC7EW"; 
+unsigned long ch_no = 2998621;
+WiFiClient  client; 
+DHT dht(DHTPIN, DHTTYPE); 
+ 
+void setup() 
+{ 
+  pinMode(wifi_LED, OUTPUT); 
+ digitalWrite(wifi_LED, LOW); 
+Serial.begin(115200); 
+ dht.begin(); 
+ WiFi.begin(ssid, password); 
+ while (WiFi.status() != WL_CONNECTED) 
+ { 
+   delay(500); 
+   Serial.print("."); 
+ } 
+ digitalWrite(wifi_LED, HIGH); 
+ Serial.println("WiFi connected"); 
+ Serial.println(WiFi.localIP()); 
+ ThingSpeak.begin(client); 
+ delay(1000); 
+} 
+
+
+void loop() 
+{ 
+ float h = dht.readHumidity(); 
+ float t = dht.readTemperature(); 
+ Serial.print("Humidity : "); 
+ Serial.print(h); 
+ Serial.print("  |  Temperature: "); 
+ Serial.println(t); 
+ 
+ ThingSpeak.setField(1, t); 
+ ThingSpeak.setField(2, h); 
+ ThingSpeak.writeFields(ch_no, write_api); 
+ delay(2000); 
+} 
+
+
+
+
+Exp 2
+
+#include <WiFi.h> 
+#include "ThingSpeak.h" 
+ 
+const char * write_api = "9OIFHW3MDEDJC7ZL";const char* ssid 	= "POCO M2 Pro";
+const char* password = "5TLOX6OG9W1FC7EW";
+unsigned long ch_no = 2998621;
+WiFiClient  client; 
+const int trigPin = 25; 
+const int echoPin = 26; 
+ 
+long duration; 
+float distance; 
+ 
+void setup() 
+{ 
+ pinMode(trigPin, OUTPUT); 
+ pinMode(echoPin, INPUT); 
+ Serial.begin(115200); 
+ WiFi.begin(ssid, password); 
+ while (WiFi.status() != WL_CONNECTED) 
+ { 
+   delay(500); 
+   Serial.print("."); 
+ } 
+ Serial.println("WiFi connected"); 
+ Serial.println(WiFi.localIP()); 
+ ThingSpeak.begin(client); 
+ delay(1000); 
+} 
+ 
+void loop() 
+{ 
+ digitalWrite(trigPin, LOW); 
+ delayMicroseconds(2); 
+ digitalWrite(trigPin, HIGH); 
+ delayMicroseconds(10); 
+ digitalWrite(trigPin, LOW); 
+ duration = pulseIn(echoPin, HIGH); 
+ distance = duration * 0.034 / 2; 
+ Serial.print(distance); 
+ Serial.println("cm"); 
+ delay(1000); 
+ ThingSpeak.setField(3, distance); 
+ ThingSpeak.writeFields(ch_no, write_api); 
+ delay(3000); 
+} 
+
+
+
+
+
+Exp 3
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+#define BLYNK_TEMPLATE_ID "TMPL33sF3OKIe"
+#define BLYNK_TEMPLATE_NAME "exp3"
+#define BLYNK_AUTH_TOKEN "P5F6Gp-l6_DaytLKfJAmD6feibro9JAQ"
+
+char ssid[] = "IoT";
+char password[] = "123456";
+
+char auth[] = "P5F6Gp-l6_DaytLKfJAmD6feibro9JAQ";
+
+#define LED_PIN 2 // LED connected to GPIO 2
+
+void setup() 
+{
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+
+    Blynk.begin(auth, ssid, password);
+}
+
+void loop() 
+{
+  Blynk.run();
+}
+
+// Virtual button V5
+BLYNK_WRITE(V5) 
+{
+  int buttonState = param.asInt();
+  
+  if (buttonState == 1) 
+  {
+    digitalWrite(LED_PIN, HIGH); 
+  } 
+  else 
+  {
+    digitalWrite(LED_PIN, LOW);
+  }
+}
+Exp 4
+
+//#define ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
+       #define DEBUG_ESP_PORT Serial
+       #define NODEBUG_WEBSOCKETS
+       #define NDEBUG
+#endif
+
+
+#include <Arduino.h>
+//#include <ESP8266WiFi.h>
+#include <WiFi.h>
+#include "SinricPro.h"
+#include "SinricProSwitch.h"
+
+
+#include <map>
+
+
+#define WIFI_SSID         "IoT"    
+#define WIFI_PASS         "12345678"
+#define APP_KEY           "bc815536-791a-47aa-a245-c0b890c92335"      // Should look like "de0bxxxx-1x3x-4x3x-ax2x-5dabxxxxxxxx"
+#define APP_SECRET        "83364b16-1de3-4d4d-9771-088ecf1d50d1-8541c68f-a3c8-4739-9cf6-1f2cfe7b03c7"   // Should look like "5f36xxxx-x3x7-4x3x-xexe-e86724a9xxxx-4c4axxxx-3x3x-x5xe-x9x3-333d65xxxxxx"
+
+
+//Enter the device IDs here
+#define device_ID_1   "64c35c1b2ac6a1822a952dd1"
+//#define device_ID_2   "64c35c6e2ac6a1822a952e50"
+//#define device_ID_3   "64c35c8a35be2dbc3eda2516"
+
+
+// define the GPIO connected with Relays and switches
+#define RelayPin1 2  //D1
+//#define RelayPin2 4  //D2
+//#define RelayPin3 12 //D3
+
+
+//#define wifiLed   16  //D0
+
+
+#define BAUD_RATE   9600
+
+
+#define DEBOUNCE_TIME 250
+
+
+typedef struct
+{      // struct for the std::map below
+  int relayPIN;
+} deviceConfig_t;
+
+
+
+
+// this is the main configuration
+// please put in your deviceId, the PIN for Relay and PIN for flipSwitch
+// this can be up to N devices...depending on how much pin's available on your device ;)
+// right now we have 3 devicesIds going to 3 relays
+std::map<String, deviceConfig_t> devices =
+{
+    {device_ID_1, {  RelayPin1 }},
+ //   {device_ID_2, {  RelayPin2 }},
+ //   {device_ID_3, {  RelayPin3 }},
+};
+
+
+
+
+void setupRelays() {
+  for (auto &device : devices) {           // for each device (relay, flipSwitch combination)
+    int relayPIN = device.second.relayPIN; // get the relay pin
+    pinMode(relayPIN, OUTPUT);             // set relay pin to OUTPUT
+    digitalWrite(relayPIN, LOW);
+  }
+}
+
+
+bool onPowerState(String deviceId, bool &state)
+{
+  Serial.printf("%s: %s\r\n", deviceId.c_str(), state ? "on" : "off");
+  int relayPIN = devices[deviceId].relayPIN; // get the relay pin for corresponding device
+  digitalWrite(relayPIN, !state);             // set the new relay state
+  return true;
+}
+
+
+
+
+void setupWiFi()
+{
+  Serial.printf("\r\n[Wifi]: Connecting");
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.printf(".");
+    delay(250);
+  }
+//  digitalWrite(wifiLed, LOW);
+  Serial.printf("connected!\r\n[WiFi]: IP-Address is %s\r\n", WiFi.localIP().toString().c_str());
+}
+
+
+void setupSinricPro()
+{
+  for (auto &device : devices)
+  {
+    const char *deviceId = device.first.c_str();
+    SinricProSwitch &mySwitch = SinricPro[deviceId];
+    mySwitch.onPowerState(onPowerState);
+  }
+
+
+  SinricPro.begin(APP_KEY, APP_SECRET);
+  SinricPro.restoreDeviceStates(true);
+}
+
+
+void setup()
+{
+  Serial.begin(BAUD_RATE);
+
+
+ // pinMode(wifiLed, OUTPUT);
+//  digitalWrite(wifiLed, HIGH);
+
+
+  setupRelays();
+  setupWiFi();
+  setupSinricPro();
+}
+
+
+void loop()
+{
+  SinricPro.handle();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Exp 5
+
+#include <WiFi.h> 
+#include <Firebase_ESP_Client.h> 
+#include "DHT.h" 
+ 
+// Include helper libraries 
+#include <addons/TokenHelper.h> // for token generation 
+#include <addons/RTDBHelper.h>  // for Realtime Database helper 
+ 
+/***** Wi-Fi and Firebase setup *****/ 
+#define WIFI_SSID "POCO M2 Pro"     	// Replace with your Wi-Fi SSID 
+#define WIFI_PASSWORD "yooooooooo"  	// Replace with your Wi-Fi password 
+#define API_KEY "AIzaSyBhp3O6yKZpbs_xvcfTG_nCrsmtYCnGUoc" // Firebase Web API Key 
+#define DATABASE_URL "https://esp32-firebase-demo-f0608-default-rtdb.firebaseio.com/" // Firebase Realtime DB URL 
+ 
+/***** DHT11 setup *****/ 
+#define DHTPIN 5 
+#define DHTTYPE DHT11 
+DHT dht(DHTPIN, DHTTYPE); 
+ 
+/***** Firebase objects *****/ 
+FirebaseData fbdo; 
+FirebaseAuth auth; 
+FirebaseConfig config; 
+ 
+/***** Function Prototypes *****/ 
+void connectToWiFi(); 
+ 
+void setup() { 
+ Serial.begin(115200); 
+ dht.begin(); 
+ 
+ // Connect to Wi-Fi 
+ connectToWiFi(); 
+ 
+ // Configure Firebase 
+ config.api_key = API_KEY; 
+ config.database_url = DATABASE_URL; 
+ 
+ // Initialize Firebase 
+ Firebase.begin(&config, &auth); 
+ Firebase.reconnectWiFi(true); 
+ 
+ Serial.println("Firebase Connected!"); 
+} 
+ 
+void loop() { 
+ float temperature = dht.readTemperature(); 
+ float humidity = dht.readHumidity(); 
+ 
+ if (isnan(temperature) || isnan(humidity)) { 
+   Serial.println("Failed to read from DHT sensor!"); 
+   delay(2000); 
+   return; 
+ } 
+ 
+ Serial.print("Temperature: "); Serial.print(temperature); Serial.print("°C  |  "); 
+ Serial.print("Humidity: "); Serial.print(humidity); Serial.println("%"); 
+ 
+ // Upload temperature to Firebase 
+ if (Firebase.RTDB.setFloat(&fbdo, "/DHT11/Temperature", temperature)) { 
+   Serial.println("Temperature uploaded successfully!"); 
+ } else { 
+   Serial.println("Failed to upload temperature: " + fbdo.errorReason()); 
+ } 
+ 
+ // Upload humidity to Firebase 
+ if (Firebase.RTDB.setFloat(&fbdo, "/DHT11/Humidity", humidity)) { 
+   Serial.println("Humidity uploaded successfully!"); 
+ } else { 
+   Serial.println("Failed to upload humidity: " + fbdo.errorReason()); 
+ } 
+ 
+ delay(5000); // Upload data every 5 seconds 
+} 
+ 
+void connectToWiFi() { 
+ Serial.print("Connecting to Wi-Fi"); 
+ WiFi.begin(WIFI_SSID, WIFI_PASSWORD); 
+ while (WiFi.status() != WL_CONNECTED) { 
+   Serial.print("."); 
+   delay(500); 
+ } 
+ Serial.println("\nConnected to Wi-Fi!"); 
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Exp 6
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include "DHT.h"
+
+
+#define DHTPIN 4        // DHT11 data pin connected to GPIO 4
+#define DHTTYPE DHT11
+
+
+// WiFi credentials
+const char* ssid = "Your_SSID";         // replace with your WiFi name
+const char* password = "Your_PASSWORD"; // replace with your WiFi password
+
+
+// MQTT broker details
+const char* mqtt_server = "broker.hivemq.com";
+const int mqtt_port = 1883;
+const char* topic = "resha/test/dht11"; // change as you like
+
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+DHT dht(DHTPIN, DHTTYPE);
+
+
+void setup_wifi() {
+ delay(10);
+ Serial.println();
+ Serial.print("Connecting to ");
+ Serial.println(ssid);
+
+
+ WiFi.begin(ssid, password);
+ while (WiFi.status() != WL_CONNECTED) {
+   delay(500);
+   Serial.print(".");
+ }
+ Serial.println("");
+ Serial.println("WiFi connected ");
+ Serial.print("IP address: ");
+ Serial.println(WiFi.localIP());
+}
+
+
+void reconnect() {
+ while (!client.connected()) {
+   Serial.print("Attempting MQTT connection...");
+   // Create a random client ID
+   String clientId = "ESP32Client-" + String(random(0xffff), HEX);
+   if (client.connect(clientId.c_str())) {
+     Serial.println("connected ");
+   } else {
+     Serial.print("failed, rc=");
+     Serial.print(client.state());
+     Serial.println(" retrying in 5 seconds...");
+     delay(5000);
+   }
+ }
+}
+
+
+void setup() {
+ Serial.begin(115200);
+ dht.begin();
+ setup_wifi();
+ client.setServer(mqtt_server, mqtt_port);
+}
+
+
+void loop() {
+ if (!client.connected()) {
+   reconnect();
+ }
+ client.loop();
+
+
+ float humidity = dht.readHumidity();
+ float temperature = dht.readTemperature(); // Celsius
+
+
+ if (isnan(humidity) || isnan(temperature)) {
+   Serial.println("Failed to read from DHT sensor!");
+   return;
+ }
+
+
+ // Create message payload
+ String payload = "{\"temperature\": " + String(temperature) + ", \"humidity\": " + String(humidity) + "}";
+ Serial.print("Publishing message: ");
+ Serial.println(payload);
+
+
+ client.publish(topic, payload.c_str()); // publish to MQTT broker
+ delay(5000); // send every 5 seconds
+}
+Exp 7
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+
+// Wi-Fi credentials
+const char* ssid = "POCO M2 Pro";      
+const char* password = "yooooooooo";   
+
+
+// MQTT Broker
+const char* mqtt_server = "broker.hivemq.com"; 
+int mqtt_port = 1883;
+
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+
+#define LED_PIN 2   // GPIO 2 connected to LED or Relay
+
+
+// Function to connect to WiFi
+void setup_wifi() {
+ delay(10);
+ Serial.println();
+ Serial.print("Connecting to WiFi: ");
+ Serial.println(ssid);
+
+
+ WiFi.begin(ssid, password);
+ while (WiFi.status() != WL_CONNECTED) {
+   delay(500);
+   Serial.print(".");
+ }
+ Serial.println("\nWiFi connected!");
+ Serial.print("IP address: ");
+ Serial.println(WiFi.localIP());
+}
+
+
+// Callback when message is received
+void callback(char* topic, byte* message, unsigned int length) {
+ Serial.print("Message arrived on topic: ");
+ Serial.print(topic);
+ Serial.print("  Message: ");
+  String msg;
+ for (int i = 0; i < length; i++) {
+   msg += (char)message[i];
+ }
+ Serial.println(msg);
+
+
+ if (msg == "ON") {
+   digitalWrite(LED_PIN, HIGH);
+ } else if (msg == "OFF") {
+   digitalWrite(LED_PIN, LOW);
+ }
+}
+
+
+void reconnect() {
+ while (!client.connected()) {
+   Serial.print("Connecting to MQTT...");
+   if (client.connect("ESP32_Client")) {
+     Serial.println("connected");
+     client.subscribe("resha/led");  // Subscribe to topic
+   } else {
+     Serial.print("failed, rc=");
+     Serial.print(client.state());
+     Serial.println(" — trying again in 5 seconds");
+     delay(5000);
+   }
+ }
+}
+
+
+void setup() {
+ pinMode(LED_PIN, OUTPUT);
+ Serial.begin(115200);
+ setup_wifi();
+ client.setServer(mqtt_server, 1883);
+ client.setCallback(callback);
+}
+
+
+void loop() {
+ if (!client.connected()) {
+   reconnect();
+ }
+ client.loop();
+}
+
+
+
+
+
+
+Exp 8
+#include <WiFi.h> #include <HTTPClient.h> #include "DHT.h" #include <ArduinoJson.h>
+
+// WiFi credentials
+const char* ssid = "Your_SSID";//Replace with your SSID
+const char* password = "Your SSID Password";//Replace with your password
+
+// Google Apps Script Web App URL String GAS_URL = "Paste your URL";
+
+// Secret key (must match Apps Script) String SECRET_KEY = "MY_SECRET_KEY_123";
+
+// DHT sensor #define DHTPIN 5
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+
+// Timing
+unsigned long previousMillis = 0;
+const long interval = 5000; // send data every 5 seconds
+
+void setup() { Serial.begin(115200); dht.begin();
+
+
+
+
+
+
+Serial.print("Connecting to WiFi"); WiFi.begin(ssid, password);
+while (WiFi.status() != WL_CONNECTED) { delay(500);
+Serial.print(".");
+}
+Serial.println("\nWiFi connected!"); Serial.print("IP address: "); Serial.println(WiFi.localIP());
+}
+
+
+void loop() {
+unsigned long currentMillis = millis();
+if (currentMillis - previousMillis >= interval) { previousMillis = currentMillis;
+float temperature = dht.readTemperature(); float humidity = dht.readHumidity();
+if (isnan(temperature) || isnan(humidity)) { Serial.println("Failed to read from DHT sensor!"); return;
+}
+// Build JSON payload StaticJsonDocument<200> doc; doc["temp"] = temperature; doc["hum"] = humidity; doc["key"] = SECRET_KEY;
+
+String jsonPayload; serializeJson(doc, jsonPayload);
+
+// Debug: print values before sending Serial.println("===== Sending Data =====");
+
+Serial.print("Temperature: "); Serial.println(temperature); Serial.print("Humidity: "); Serial.println(humidity); Serial.print("Secret Key: "); Serial.println(SECRET_KEY); Serial.print("JSON Payload: "); Serial.println(jsonPayload);
+
+// Send POST request
+if (WiFi.status() == WL_CONNECTED) { HTTPClient http; http.begin(GAS_URL);
+http.addHeader("Content-Type", "application/json"); int httpCode = http.POST(jsonPayload);
+if (httpCode > 0) {
+Serial.print("HTTP Response code: "); Serial.println(httpCode);
+String payload = http.getString(); Serial.print("Server response: ");
+Serial.println(payload);
+} else {
+Serial.printf("Error sending request: %d\n", httpCode);
+}
+http.end();
+} else {
+Serial.println("WiFi not connected!");
+}
+Serial.println("========================\n");
+}
+}
