@@ -692,3 +692,34 @@ Serial.println("WiFi not connected!");
 Serial.println("========================\n");
 }
 }
+
+
+
+Script Code
+
+function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+  // Check if POST data exists
+  if (!e || !e.postData || !e.postData.contents) {
+    return ContentService.createTextOutput("No data received");
+  }
+
+  // Parse JSON data
+  var data = JSON.parse(e.postData.contents);
+
+  // Secret key for security
+  if (data.key !== "MY_SECRET_KEY_123") {
+    return ContentService.createTextOutput("Unauthorized");
+  }
+
+  // Extract temperature and humidity
+  var temp = data.temp || "NA";
+  var hum = data.hum || "NA";
+
+  // Append row to sheet
+  sheet.appendRow([new Date(), temp, hum]);
+
+  return ContentService.createTextOutput("Data added: " + temp + ", " + hum);
+}
+
