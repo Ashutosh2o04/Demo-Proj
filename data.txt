@@ -151,6 +151,8 @@ BLYNK_WRITE(V5)
     digitalWrite(LED_PIN, LOW);
   }
 }
+
+
 Exp 4
 
 //#define ENABLE_DEBUG
@@ -293,42 +295,6 @@ void loop()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Exp 5
 
 #include <WiFi.h> 
@@ -415,18 +381,6 @@ void connectToWiFi() {
  } 
  Serial.println("\nConnected to Wi-Fi!"); 
 } 
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
